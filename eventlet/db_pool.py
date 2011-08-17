@@ -106,8 +106,6 @@ class BaseConnectionPool(Pool):
             conn
             for last_used, created_at, conn in self.free_items
             if self._is_expired(now, last_used, created_at)]
-        for conn in expired:
-            self._safe_close(conn, quiet=True)
 
         new_free = [
             (last_used, created_at, conn)
@@ -119,6 +117,9 @@ class BaseConnectionPool(Pool):
         # adjust the current size counter to account for expired
         # connections
         self.current_size -= original_count - len(self.free_items)
+
+        for conn in expired:
+            self._safe_close(conn, quiet=True)
 
     def _is_expired(self, now, last_used, created_at):
         """ Returns true and closes the connection if it's expired."""
