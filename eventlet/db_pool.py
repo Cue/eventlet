@@ -4,7 +4,9 @@ import time
 
 from eventlet.pools import Pool
 from eventlet import timeout
-from eventlet import greenthread
+from eventlet import hubs
+from eventlet.hubs.timer import Timer
+from eventlet.greenthread import GreenThread
 
 
 class ConnectTimeout(Exception):
@@ -88,8 +90,9 @@ class BaseConnectionPool(Pool):
 
         if next_delay > 0:
             # set up a continuous self-calling loop
-            self._expiration_timer = greenthread.spawn_after(next_delay,
-                                                    self._schedule_expiration)
+            self._expiration_timer = Timer(next_delay, GreenThread(hubs.get_hub().greenlet).switch,
+                                           self._schedule_expiration, [], {})
+            self._expiration_timer.schedule()
 
     def _expire_old_connections(self, now):
         """ Iterates through the open connections contained in the pool, closing
